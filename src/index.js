@@ -10,7 +10,7 @@ const fs = require("node:fs");
 // Necessary imports for discord.js
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
 // Importing environment variables
-const { token } = require("env.json");
+const { token } = require("./env.json");
 
 /*
  *

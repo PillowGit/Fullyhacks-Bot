@@ -6,7 +6,7 @@
  */
 
 const { REST, Routes } = require('discord.js');
-const { clientId, token, testGuilds } = require('./config.json');
+const { clientId, token, testGuilds } = require('./env.json');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -52,6 +52,6 @@ async function deploy(testGuildId) {
     }
 };
 
-for (let i = 0; i < testGuilds.length; i++) {
-    await deploy(testGuilds[i])
-};
+testGuilds.forEach(async (guildid) => {
+    await deploy(guildid)
+});
