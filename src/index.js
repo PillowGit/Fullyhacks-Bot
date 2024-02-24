@@ -8,7 +8,9 @@
 const path = require("node:path");
 const fs = require("node:fs");
 // Necessary imports for discord.js
-const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
+const { Client, Collection, Events, GatewayIntentBits, IntentsBitField, EmbedBuilder } = require("discord.js");
+// Easy persistent json storage
+const storage = require('node-persist')
 // Importing environment variables
 const { token } = require("./env.json");
 
@@ -18,9 +20,24 @@ const { token } = require("./env.json");
  *
  */
 
+// Create a persistent storage object to pass to functions when necessary
+storage.init({
+  dir: './storage',
+  stringify: JSON.stringify,
+  parse: JSON.parse,
+  encoding: "utf8",
+  logging: false,
+  ttl: false,
+  expiredInterval: 2 * 60 * 1000,
+  forgiveParseErrors: false,
+  writeQueue: false,
+  writeQueueIntervalMs: 1000,
+  writeQueueWriteOnlyLast: false,
+});
+
 // Initialize our discord bot with given intents
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildBans],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent],
 });
 
 // Initialize a command collection to add our commands to
@@ -47,8 +64,49 @@ for (const folder of commandFolders) {
   }
 }
 
+// Define what we should do with button interactions
+const reqchannelid = "1209575418081050724";
+const announcementChannel = "1209575329916784730";
+const announcementRole = "1203512307230052442";
+async function handleButton(interaction) {
+  // Gets the interaction id this response originated from
+  const targetId = interaction.customId.substring(0, interaction.customId.length - 1);
+  const data = await storage.getItem(targetId);
+  // Decide what to do based on the buttons id
+  const reqChannel = await client.channels.cache.get(reqchannelid);
+  const reqMessage = await reqChannel.messages.fetch(data[0]);
+  const targetEmbed = reqMessage.embeds[0];
+  let responseEmbed = null;
+  if (interaction.customId.charAt(interaction.customId.length - 1) === "0") {
+      // On Deny
+      responseEmbed = new EmbedBuilder()
+          .setColor("#c73241")
+          .setTitle(targetEmbed.data.title)
+          .setDescription(data[1])
+          .setFooter({text: `Denied by ${interaction.user.tag}`});
+  } else {
+      // On Accept
+      responseEmbed = new EmbedBuilder()
+          .setColor("#1ebd3b")
+          .setTitle(targetEmbed.data.title)
+          .setDescription(data[1])
+          .setFooter({text: `Approved by ${interaction.user.tag}`});
+      const finalChannel = await client.channels.cache.get(announcementChannel);
+      await finalChannel.send({
+          content: `<@&${announcementRole}>\nNew announcement from <@${data[2]}>:\n\n${data[1]}`
+      });
+  }
+  await reqMessage.edit({embeds: [responseEmbed], components: []});
+  await storage.removeItem(targetId);
+}
+
 // Link interaction creation events with their associated / command
 client.on(Events.InteractionCreate, async (interaction) => {
+  // Look for button input, if so, link to button handler
+  if (interaction.isButton()) { 
+    await handleButton(interaction);
+    return;
+  }
   if (!interaction.isChatInputCommand()) return;
   const command = interaction.client.commands.get(interaction.commandName);
   if (!command) {
@@ -56,7 +114,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
   try {
-    await command.execute(interaction);
+    // Pass the client and storage objects to every command we run!
+    await command.execute(interaction, client, storage);
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
