@@ -65,10 +65,29 @@ for (const folder of commandFolders) {
 }
 
 // Define what we should do with button interactions
-const reqchannelid = "1209575418081050724";
-const announcementChannel = "1209575329916784730";
-const announcementRole = "1203512307230052442";
+const reqchannelid = "1210860545515847731";
+const announcementChannel = "1210859945122205746";
+const announcementRole = "1210858163801427999";
 async function handleButton(interaction) {
+  /*
+   * In case of getting role
+   */
+  if (interaction.customId === "self-role") {
+    try {
+      const requester = await interaction.guild.members.fetch(interaction.user.id);
+      const res = await requester.roles.add(announcementRole);
+    } catch(e) {
+      const ef = e;
+    }
+    await interaction.reply({
+      content: "Role added successfully :)",
+      ephemeral: true,
+    });
+    return;
+  }
+  /*
+   * In case of announcement verification
+   */
   // Gets the interaction id this response originated from
   const targetId = interaction.customId.substring(0, interaction.customId.length - 1);
   const data = await storage.getItem(targetId);

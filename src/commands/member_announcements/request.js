@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = require("discord.js");
-const reqchannelid = "1209575418081050724";
+const reqchannelid = "1210860545515847731";
 
 module.exports = {
   data: new SlashCommandBuilder()
