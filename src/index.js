@@ -8,9 +8,14 @@
 const path = require("node:path");
 const fs = require("node:fs");
 // Necessary imports for discord.js
-const { Client, Collection, Events, GatewayIntentBits, IntentsBitField, EmbedBuilder } = require("discord.js");
-// Easy persistent json storage
-const storage = require('node-persist')
+const {
+  Client,
+  Collection,
+  Events,
+  GatewayIntentBits,
+  IntentsBitField,
+  EmbedBuilder,
+} = require("discord.js");
 // Importing environment variables
 const { token } = require("./env.json");
 
@@ -20,24 +25,14 @@ const { token } = require("./env.json");
  *
  */
 
-// Create a persistent storage object to pass to functions when necessary
-storage.init({
-  dir: './storage',
-  stringify: JSON.stringify,
-  parse: JSON.parse,
-  encoding: "utf8",
-  logging: false,
-  ttl: false,
-  expiredInterval: 2 * 60 * 1000,
-  forgiveParseErrors: false,
-  writeQueue: false,
-  writeQueueIntervalMs: 1000,
-  writeQueueWriteOnlyLast: false,
-});
-
 // Initialize our discord bot with given intents
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    IntentsBitField.Flags.GuildMessages,
+    IntentsBitField.Flags.MessageContent,
+  ],
 });
 
 // Initialize a command collection to add our commands to
@@ -58,71 +53,22 @@ for (const folder of commandFolders) {
       client.commands.set(command.data.name, command);
     } else {
       console.log(
-        `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`,
+        `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
       );
     }
   }
 }
 
 // Define what we should do with button interactions
-const reqchannelid = "1210860545515847731";
-const announcementChannel = "1210859945122205746";
-const announcementRole = "1210858163801427999";
 async function handleButton(interaction) {
-  /*
-   * In case of getting role
-   */
-  if (interaction.customId === "self-role") {
-    try {
-      const requester = await interaction.guild.members.fetch(interaction.user.id);
-      const res = await requester.roles.add(announcementRole);
-    } catch(e) {
-      const ef = e;
-    }
-    await interaction.reply({
-      content: "Role added successfully :)",
-      ephemeral: true,
-    });
-    return;
-  }
-  /*
-   * In case of announcement verification
-   */
-  // Gets the interaction id this response originated from
-  const targetId = interaction.customId.substring(0, interaction.customId.length - 1);
-  const data = await storage.getItem(targetId);
-  // Decide what to do based on the buttons id
-  const reqChannel = await client.channels.cache.get(reqchannelid);
-  const reqMessage = await reqChannel.messages.fetch(data[0]);
-  const targetEmbed = reqMessage.embeds[0];
-  let responseEmbed = null;
-  if (interaction.customId.charAt(interaction.customId.length - 1) === "0") {
-      // On Deny
-      responseEmbed = new EmbedBuilder()
-          .setColor("#c73241")
-          .setTitle(targetEmbed.data.title)
-          .setDescription(data[1])
-          .setFooter({text: `Denied by ${interaction.user.tag}`});
-  } else {
-      // On Accept
-      responseEmbed = new EmbedBuilder()
-          .setColor("#1ebd3b")
-          .setTitle(targetEmbed.data.title)
-          .setDescription(data[1])
-          .setFooter({text: `Approved by ${interaction.user.tag}`});
-      const finalChannel = await client.channels.cache.get(announcementChannel);
-      await finalChannel.send({
-          content: `<@&${announcementRole}>\nNew announcement from <@${data[2]}>:\n\n${data[1]}`
-      });
-  }
-  await reqMessage.edit({embeds: [responseEmbed], components: []});
-  await storage.removeItem(targetId);
+  console.log("A button was pressed:");
+  console.log(interaction.customId);
 }
 
 // Link interaction creation events with their associated / command
 client.on(Events.InteractionCreate, async (interaction) => {
   // Look for button input, if so, link to button handler
-  if (interaction.isButton()) { 
+  if (interaction.isButton()) {
     await handleButton(interaction);
     return;
   }
@@ -134,7 +80,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
   try {
     // Pass the client and storage objects to every command we run!
-    await command.execute(interaction, client, storage);
+    await command.execute(interaction, client, null);
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
