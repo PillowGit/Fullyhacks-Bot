@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "node-persist": "^4.0.1"
+    "discord.js": "^14.14.1"
   }
 }
