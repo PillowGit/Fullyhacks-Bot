@@ -36,7 +36,6 @@ module.exports = {
     const channel =
       interaction.options.getChannel("channel") ||
       interaction.guild.channels.cache.get(default_channel_id);
-    console.log(channel);
     if (!channel) {
       await interaction.reply({
         content: "The specified channel does not exist.",
